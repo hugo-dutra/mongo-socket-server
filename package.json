@@ -1,0 +1,25 @@
+{
+  "name": "mongo-socket-server",
+  "version": "0.0.4",
+  "description": "",
+  "main": "lib/index.js",
+  "types": "lib",
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/bluebird": "^3.5.30",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "@types/mongodb": "^3.5.6",
+    "@types/mongoose": "^5.7.10",
+    "@types/socket.io": "^2.1.4",
+    "mongodb": "^3.5.6",
+    "mongoose": "^5.9.9",
+    "rxjs": "^6.5.5",
+    "socket.io": "^2.3.0"
+  }
+}
