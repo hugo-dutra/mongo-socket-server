@@ -71,7 +71,6 @@ export class SocketServer {
         /* UPDATE ONE OR MANY OBJECTS */
         const updateObjects = socket.on(ON.UPDATE, (database: string, collection: string, query: Object, fieldsAndValues: Object) => [
           this.updateObjects(db, database, collection, query, fieldsAndValues).then((object: any) => {
-            console.log(object);
             updateObjects.emit(EMMITER.STATUS_SUCCESS, object);
           }).catch((reason: any) => {
             updateObjects.emit(EMMITER.STATUS_FAIL, reason);
