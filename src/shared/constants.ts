@@ -12,6 +12,8 @@ export const EMMITER = {
 export const ON = {
   CLIENT_CONNECTED: 'clientConnected',
   CONNECTION: 'connection',
+  DELETE_ONE: 'deleteOne',
+  DELETE_MANY: 'deleteMany',
   FIND: 'find',
   INSERT_ONE: 'insertOne',
   INSERT_MANY: 'insertMany',

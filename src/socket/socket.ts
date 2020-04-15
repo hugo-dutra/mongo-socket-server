@@ -3,12 +3,13 @@ import { ON, EMMITER, CONSTANT } from '../shared/constants';
 import * as SocketIO from 'socket.io';
 import { MongoClient, MongoError, ObjectId, ChangeEvent, UpdateWriteOpResult } from 'mongodb';
 import { Observable, Subscriber } from 'rxjs';
+import { reject } from 'bluebird';
 
 export class SocketServer {
   private mongoServer = new MongoServer();
 
   constructor(socker_server_port: number, mongo_host: string, mongo_port: number) {
-    const sockertServer = SocketIO.listen(socker_server_port).sockets;
+    const socketServer = SocketIO.listen(socker_server_port).sockets;
     const mongoClient: MongoClient = new MongoClient(`${mongo_host}:${mongo_port}`, { useUnifiedTopology: true });
 
     mongoClient.connect((err: MongoError, db: MongoClient) => {
@@ -17,9 +18,23 @@ export class SocketServer {
       }
       console.log(`connected at mongo...`);
       console.log(`listening on ${socker_server_port} socket port...`);
-      sockertServer.on(ON.CONNECTION, (socket: SocketIO.Socket) => {
-        socket.on(ON.CLIENT_CONNECTED, () => {
-          console.log(`client ${socket.id} connected...`);
+      socketServer.on(ON.CONNECTION, (socket: SocketIO.Socket) => {
+        console.log(`client ${socket.id} connected...`);
+        /* DELETE OBJECT BY ID */
+        const deleteObjectById = socket.on(ON.DELETE_ONE, (database: string, collection: string, ObjectId: string) => {
+          this.deleteObjectById(db, database, collection, ObjectId).then((object: any) => {
+            deleteObjectById.emit(EMMITER.STATUS_SUCCESS, object);
+          }).catch((reason: any) => {
+            deleteObjectById.emit(EMMITER.STATUS_FAIL, reason);
+          });
+        });
+        /* DELETE ON OR MANY OBJECTS FROM TARGET COLLECTON */
+        const deleteObjects = socket.on(ON.DELETE_MANY, (database: string, collection: string, queryObject: Object) => {
+          this.deleteObjects(db, database, collection, queryObject).then((object: any) => {
+            deleteObjects.emit(EMMITER.STATUS_SUCCESS, object);
+          }).catch((reason: any) => {
+            deleteObjects.emit(EMMITER.STATUS_FAIL, reason);
+          })
         });
         /* FIND OBJECT BY ID */
         const findObjectById = socket.on(ON.FIND, (database: string, collection: string, id: string) => {
@@ -28,6 +43,14 @@ export class SocketServer {
           }).catch((reason: any) => {
             findObjectById.emit(EMMITER.STATUS_FAIL, { status: ON.STATUS_FAIL, reason: reason })
           });
+        });
+        /* LIST OBJECTS FROM TARGET COLLECTION */
+        const findObjects = socket.on(ON.LIST_OBJECTS, (database: string, collection: string, queryObject: Object) => {
+          this.findObjects(db, database, collection, queryObject).then((objects: any[]) => {
+            findObjects.emit(EMMITER.STATUS_SUCCESS, objects);
+          }).catch((reason: any) => {
+            findObjects.emit(EMMITER.STATUS_FAIL, reason);
+          })
         });
         /* LIST COLLECTIONS FROM DATABASE */
         const listCollectionsByDatabaseName = socket.on(ON.LIST_COLLECTION, (database: string) => {
@@ -43,15 +66,6 @@ export class SocketServer {
             listAllObjectsFromCollection.emit(EMMITER.STATUS_SUCCESS, objects);
           }).catch((reason: any) => {
             listAllObjectsFromCollection.emit(EMMITER.STATUS_FAIL, reason);
-          })
-        });
-        /* LIST OBJECTS FROM TARGET COLLECTION */
-        const listObjectsFromCollection = socket.on(ON.LIST_OBJECTS, (database: string, collection: string, queryObject: Object) => {
-          this.listObjectsFromCollection(db, database, collection, queryObject).then((objects: any[]) => {
-            console.log(objects);
-            listObjectsFromCollection.emit(EMMITER.STATUS_SUCCESS, objects);
-          }).catch((reason: any) => {
-            listObjectsFromCollection.emit(EMMITER.STATUS_FAIL, reason);
           })
         });
         /* UPDATE ONE OR MANY OBJECTS */
@@ -94,6 +108,48 @@ export class SocketServer {
   }
 
   /**
+   * @author Hugo Alves Dutra
+   * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+   * Delete all objects match with queryObject
+   * @param db MongoClient
+   * @param databaseName Target database
+   * @param collection Target collection
+   * @param queryObject Query select objects to delete {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+   * @result Objects deleted infomation
+   */
+  private deleteObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.mongoServer.deleteObjects(db, databaseName, collection, queryObject).then((result) => {
+        resolve(result);
+      }).catch((reason: any) => {
+        reject(reason);
+      });
+    });
+  }
+
+  /**
+   * @author Hugo Alves Dutra
+   * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+   * Delete single object by ObjectId informed
+   * @param db MongoClient
+   * @param databaseName Target database
+   * @param collection Target collection
+   * @param id Target object do delete
+   * @result object deleted informations
+   */
+  private deleteObjectById(db: MongoClient, databaseName: string, collection: string, ObjectId: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.mongoServer.deleteObjectById(db, databaseName, collection, ObjectId).then((result) => {
+        resolve(result);
+      }).catch((reason: any) => {
+        reject(reason);
+      });
+    });
+  }
+
+  /**
+   * @author Hugo Alves Dutra
+   * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
    * Find object by MondoDbId _id
    * @param db Mongo database client
    * @param databaseName Database name
@@ -111,6 +167,8 @@ export class SocketServer {
   }
 
   /**
+   * @author Hugo Alves Dutra
+   * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
    * Return name and size from database collections
    * @param db MongoDbClient
    * @param databaseName Name from database
@@ -127,6 +185,8 @@ export class SocketServer {
   }
 
   /**
+   * @author Hugo Alves Dutra
+   * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
    * List all objects from collection
    * @param db Mongo client
    * @param databaseName databasename
@@ -142,9 +202,19 @@ export class SocketServer {
     });
   }
 
-  private listObjectsFromCollection(db: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any[]> {
+  /**
+  * @author Hugo Alves Dutra
+  * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+  * List from documents match queryObject
+  * @param db MongoClient
+  * @param databaseName Data base name
+  * @param collection Collection target
+  * @param queryObject Query object. Fiels and values {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+  * @return Array from objects from collection
+  */
+  private findObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any[]> {
     return new Promise((resolve, reject) => {
-      this.mongoServer.listObjectsFromCollection(db, databaseName, collection, queryObject).then((values: any[]) => {
+      this.mongoServer.findObjects(db, databaseName, collection, queryObject).then((values: any[]) => {
         resolve(values);
       }).catch((reason: any) => {
         reject(reason);
@@ -152,9 +222,19 @@ export class SocketServer {
     });
   }
 
-  public updateObjects(db: MongoClient, databaseName: string, collection: string, query: Object, fieldsAndValues: Object): Promise<any> {
+  /**
+  * @author Hugo Alves Dutra
+  * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+  * Update single or multiples objects
+  * @param db MongoClient
+  * @param databaseName Target database
+  * @param collection Target colleciton
+  * @param query Query criteria {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+  * @param fieldValues Value to updated
+  */
+  public updateObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.mongoServer.updateObjects(db, databaseName, collection, query, fieldsAndValues).then((documents: UpdateWriteOpResult) => {
+      this.mongoServer.updateObjects(db, databaseName, collection, queryObject, fieldsAndValues).then((documents: UpdateWriteOpResult) => {
         resolve(documents);
       }).catch((reason: any) => {
         reject(reason);
@@ -163,13 +243,15 @@ export class SocketServer {
   }
 
   /**
-   * Write single object
-   * @param db Mongo database client
-   * @param databaseName Database name
-   * @param collection Collection name
-   * @param document Object to write
-   * @returns Promise from any
-   */
+  * @author Hugo Alves Dutra
+  * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+  * Write single object
+  * @param db Mongo database client
+  * @param databaseName Database name
+  * @param collection Collection name
+  * @param document Object to write
+  * @returns Promise from any
+  */
   private writeObject(db: MongoClient, databaseName: string, collection: string, document: Object): Promise<any> {
     return new Promise((resolve, reject) => {
       this.mongoServer.writeObject(db, databaseName, collection, document).then((value: any) => {
@@ -181,6 +263,8 @@ export class SocketServer {
   }
 
   /**
+  * @author Hugo Alves Dutra
+  * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
   * Write multiples object
   * @param db Mongo database client
   * @param databaseName Database name
@@ -199,6 +283,8 @@ export class SocketServer {
   }
 
   /**
+   * @author Hugo Alves Dutra
+   * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
    * Validade write documents limit size from collection size to write object method.
    * Value is configurable
    * @param collectionSize array size limit
@@ -212,11 +298,15 @@ export class SocketServer {
   }
 
   /**
-     *
-     * @param db Database Mongo Client
-     * @param databaseName Name from database
-     * @param collectionName Name from collection to observer
-     */
+  * @author Hugo Alves Dutra
+  * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+  * Watch target collections
+  * *** ONLY WORKS ON REPLYCA SET MONGO DB SERVER ***
+  * @param db Database Mongo Client
+  * @param databaseName Name from database
+  * @param collectionName Name from collection to observer
+  * @result Object changed
+  */
   public subscribeCollection(db: MongoClient, databaseName: string, collectionName: string): Observable<ChangeEvent<any>> {
     return new Observable((subscriber: Subscriber<any>) => {
       this.mongoServer.subscribeCollection(db, databaseName, collectionName).subscribe((doc: ChangeEvent<any>) => {

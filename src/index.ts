@@ -3,6 +3,8 @@ import { Promise } from 'bluebird';
 
 export default class MongoSocketServer {
   /**
+   * @author Hugo Alves Dutra
+   * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
    * Just put server parameters
    * @param socketServerPort Socket server port (Ex.:3000)
    * @param mongoHost Mongo host (Ex.: mongodb://10.221.37.110 )

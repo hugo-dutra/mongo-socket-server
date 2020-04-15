@@ -11,6 +11,8 @@ export declare const EMMITER: {
 export declare const ON: {
     CLIENT_CONNECTED: string;
     CONNECTION: string;
+    DELETE_ONE: string;
+    DELETE_MANY: string;
     FIND: string;
     INSERT_ONE: string;
     INSERT_MANY: string;

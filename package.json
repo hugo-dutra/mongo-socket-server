@@ -1,6 +1,6 @@
 {
   "name": "mongo-socket-server",
-  "version": "0.0.4",
+  "version": "0.0.11",
   "description": "",
   "main": "lib/index.js",
   "types": "lib",
