@@ -4,9 +4,11 @@ import * as SocketIO from 'socket.io';
 import { MongoClient, MongoError, ObjectId, ChangeEvent, UpdateWriteOpResult } from 'mongodb';
 import { Observable, Subscriber } from 'rxjs';
 import { reject } from 'bluebird';
+import { Utils } from '../shared/utils';
 
 export class SocketServer {
   private mongoServer = new MongoServer();
+  private utils = new Utils();
 
   constructor(socker_server_port: number, mongo_host: string, mongo_port: number) {
     const socketServer = SocketIO.listen(socker_server_port).sockets;
@@ -118,6 +120,9 @@ export class SocketServer {
    */
   private deleteObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollectionObjectQuery(databaseName, collection, queryObject)) {
+        reject({ reason: 'database, collection or queryObject null or undefined' });
+      }
       this.mongoServer.deleteObjects(db, databaseName, collection, queryObject).then((result) => {
         resolve(result);
       }).catch((reason: any) => {
@@ -138,6 +143,9 @@ export class SocketServer {
    */
   private deleteObjectById(db: MongoClient, databaseName: string, collection: string, ObjectId: string): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
+        reject({ reason: 'database or collection null or undefined' });
+      }
       this.mongoServer.deleteObjectById(db, databaseName, collection, ObjectId).then((result) => {
         resolve(result);
       }).catch((reason: any) => {
@@ -157,6 +165,9 @@ export class SocketServer {
    */
   private findObjectById(db: MongoClient, databaseName: string, collection: string, id: string): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
+        reject({ reason: 'database or collection null or undefined' });
+      }
       this.mongoServer.findObjectById(db, databaseName, collection, id).then((result) => {
         resolve(result);
       }).catch((reason: any) => {
@@ -175,6 +186,9 @@ export class SocketServer {
    */
   private listCollections(db: MongoClient, databaseName: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabase(databaseName)) {
+        reject({ reason: 'database or undefined' });
+      }
       this.mongoServer.listCollections(db, databaseName).then((collections: any[]) => {
         resolve(collections);
       }).catch((reason: any) => {
@@ -193,6 +207,9 @@ export class SocketServer {
    */
   private listAllObjectsFromCollection(db: MongoClient, databaseName: string, collection: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
+        reject({ reason: 'database or collection null or undefined' });
+      }
       this.mongoServer.listAllObjectsFromCollection(db, databaseName, collection).then((values: any[]) => {
         resolve(values);
       }).catch((reason: any) => {
@@ -213,6 +230,9 @@ export class SocketServer {
   */
   private findObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any[]> {
     return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollectionObjectQuery(databaseName, collection, queryObject)) {
+        reject({ reason: 'database, collection or queryObject null or undefined' });
+      }
       this.mongoServer.findObjects(db, databaseName, collection, queryObject).then((values: any[]) => {
         resolve(values);
       }).catch((reason: any) => {
@@ -233,6 +253,9 @@ export class SocketServer {
   */
   public updateObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollectionObjectQuery(databaseName, collection, queryObject)) {
+        reject({ reason: 'database, collection or queryObject null or undefined' });
+      }
       this.mongoServer.updateObjects(db, databaseName, collection, queryObject, fieldsAndValues).then((documents: UpdateWriteOpResult) => {
         resolve(documents);
       }).catch((reason: any) => {
@@ -253,6 +276,9 @@ export class SocketServer {
   */
   private writeObject(db: MongoClient, databaseName: string, collection: string, document: Object): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
+        reject({ reason: 'database, collection null or undefined' });
+      }
       this.mongoServer.writeObject(db, databaseName, collection, document).then((value: any) => {
         resolve(value);
       }).catch((reason: any) => {
@@ -273,6 +299,9 @@ export class SocketServer {
   */
   private writeObjects(db: MongoClient, databaseName: string, collection: string, objects: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
+        reject({ reason: 'database, collection null or undefined' });
+      }
       this.mongoServer.writeObjects(db, databaseName, collection, objects).then((value: any) => {
         resolve(value);
       }).catch((reason: any) => {
@@ -308,6 +337,9 @@ export class SocketServer {
   */
   public subscribeCollection(db: MongoClient, databaseName: string, collectionName: string): Observable<ChangeEvent<any>> {
     return new Observable((subscriber: Subscriber<any>) => {
+      if (!this.utils.validateRequestDatabaseCollection(databaseName, collectionName)) {
+        subscriber.error({ reason: 'database, collection null or undefined' });
+      }
       this.mongoServer.subscribeCollection(db, databaseName, collectionName).subscribe((doc: ChangeEvent<any>) => {
         subscriber.next(doc);
       });

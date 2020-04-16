@@ -1,6 +1,6 @@
 {
   "name": "mongo-socket-server",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "",
   "main": "lib/index.js",
   "types": "lib",
@@ -21,5 +21,9 @@
     "mongoose": "^5.9.9",
     "rxjs": "^6.5.5",
     "socket.io": "^2.3.0"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/hugo-dutra/mongo-socket-server/issues"
+  },
+  "homepage": "https://github.com/hugo-dutra/mongo-socket-server#readme"
 }
