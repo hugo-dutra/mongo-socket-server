@@ -1,4 +1,4 @@
-import { MongoClient, ChangeEvent } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import { Observable } from 'rxjs';
 export declare class SocketServer {
     private mongoServer;
@@ -117,6 +117,6 @@ export declare class SocketServer {
     * @param collectionName Name from collection to observer
     * @result Object changed
     */
-    subscribeCollection(db: MongoClient, databaseName: string, collectionName: string): Observable<ChangeEvent<any>>;
+    subscribeCollection(db: MongoClient, databaseName: string, collectionName: string): Observable<any>;
 }
 //# sourceMappingURL=socket.d.ts.map

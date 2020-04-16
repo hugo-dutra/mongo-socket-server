@@ -335,12 +335,13 @@ export class SocketServer {
   * @param collectionName Name from collection to observer
   * @result Object changed
   */
-  public subscribeCollection(db: MongoClient, databaseName: string, collectionName: string): Observable<ChangeEvent<any>> {
+  public subscribeCollection(db: MongoClient, databaseName: string, collectionName: string): Observable<any> {
     return new Observable((subscriber: Subscriber<any>) => {
       if (!this.utils.validateRequestDatabaseCollection(databaseName, collectionName)) {
-        subscriber.next({ error: 'database, collection null or undefined' });
+        subscriber.next({ reason: 'database or collection null or empty' });
+        subscriber.unsubscribe();
       } else {
-        this.mongoServer.subscribeCollection(db, databaseName, collectionName).subscribe((doc: ChangeEvent<any>) => {
+        this.mongoServer.subscribeCollection(db, databaseName, collectionName).subscribe((doc: any) => {
           subscriber.next(doc);
         });
       }
