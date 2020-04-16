@@ -1,5 +1,4 @@
 import { SocketServer } from './socket/socket';
-import { Promise } from 'bluebird';
 
 export default class MongoSocketServer {
   /**

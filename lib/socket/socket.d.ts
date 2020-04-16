@@ -2,6 +2,7 @@ import { MongoClient, ChangeEvent } from 'mongodb';
 import { Observable } from 'rxjs';
 export declare class SocketServer {
     private mongoServer;
+    private utils;
     constructor(socker_server_port: number, mongo_host: string, mongo_port: number);
     /**
      * @author Hugo Alves Dutra
