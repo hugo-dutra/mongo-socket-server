@@ -11,7 +11,7 @@ export declare class SocketServer {
      * @param db MongoClient
      * @param databaseName Target database
      * @param collection Target collection
-     * @param queryObject Query select objects to delete {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+     * @param queryObject Query select objects to delete {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
      * @result Objects deleted infomation
      */
     private deleteObjects;
@@ -61,10 +61,21 @@ export declare class SocketServer {
     * @param db MongoClient
     * @param databaseName Data base name
     * @param collection Collection target
-    * @param queryObject Query object. Fiels and values {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+    * @param queryObject Query object. Fiels and values {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
     * @return Array from objects from collection
     */
     private findObjects;
+    /**
+    * @author Hugo Alves Dutra
+    * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+    * Replace single
+    * @param db MongoClient
+    * @param databaseName Target database
+    * @param collection Target colleciton
+    * @param query Query criteria {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
+    * @param fieldValues Value to updated
+    */
+    replaceOne(mc: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any>;
     /**
     * @author Hugo Alves Dutra
     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -72,10 +83,21 @@ export declare class SocketServer {
     * @param db MongoClient
     * @param databaseName Target database
     * @param collection Target colleciton
-    * @param query Query criteria {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+    * @param query Query criteria {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
     * @param fieldValues Value to updated
     */
-    updateObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any>;
+    updateMany(mc: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any>;
+    /**
+    * @author Hugo Alves Dutra
+    * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+    * Update single object
+    * @param db MongoClient
+    * @param databaseName Target database
+    * @param collection Target colleciton
+    * @param query Query criteria {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
+    * @param fieldValues Value to updated
+    */
+    updateOne(mc: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any>;
     /**
     * @author Hugo Alves Dutra
     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -117,6 +139,6 @@ export declare class SocketServer {
     * @param collectionName Name from collection to observer
     * @result Object changed
     */
-    subscribeCollection(db: MongoClient, databaseName: string, collectionName: string): Observable<any>;
+    subscribeCollection(mc: MongoClient, databaseName: string, collectionName: string): Observable<any>;
 }
 //# sourceMappingURL=socket.d.ts.map

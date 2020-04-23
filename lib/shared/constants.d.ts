@@ -22,6 +22,9 @@ export declare const ON: {
     STATUS_SUCCESS: string;
     STATUS_FAIL: string;
     SUBSCRIBE_COLLECTION: string;
-    UPDATE: string;
+    SUBSCRIBE_DOCUMENTS: string;
+    REPLACE_ONE: string;
+    UPDATE_ONE: string;
+    UPDATE_MANY: string;
 };
 //# sourceMappingURL=constants.d.ts.map

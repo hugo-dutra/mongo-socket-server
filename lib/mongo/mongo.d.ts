@@ -1,4 +1,4 @@
-import { MongoClient, ChangeEvent, UpdateWriteOpResult } from 'mongodb';
+import { MongoClient, ChangeEvent, UpdateWriteOpResult, ReplaceWriteOpResult } from 'mongodb';
 import { Observable } from 'rxjs';
 export declare class MongoServer {
     /**
@@ -11,7 +11,7 @@ export declare class MongoServer {
     * @param id Target object do delete
     * @result object deleted informations
     */
-    deleteObjectById(db: MongoClient, databaseName: string, collection: string, id: string): Promise<any>;
+    deleteObjectById(mc: MongoClient, databaseName: string, collection: string, id: string): Promise<any>;
     /**
     * @author Hugo Alves Dutra
     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -19,10 +19,10 @@ export declare class MongoServer {
     * @param db MongoClient
     * @param databaseName Target database
     * @param collection Target collection
-    * @param queryObject Query select objects to delete {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+    * @param queryObject Query select objects to delete {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
     * @result Objects deleted infomation
     */
-    deleteObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any>;
+    deleteObjects(mc: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any>;
     /**
     * @author Hugo Alves Dutra
     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -32,7 +32,7 @@ export declare class MongoServer {
     * @param collection Collection name
     * @param id Document id (_id)
     */
-    findObjectById(db: MongoClient, databaseName: string, collection: string, id: string): Promise<any>;
+    findObjectById(mc: MongoClient, databaseName: string, collection: string, id: string): Promise<any>;
     /**
     * @author Hugo Alves Dutra
     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -42,7 +42,7 @@ export declare class MongoServer {
     * @param collection Target collection
     * @return Array from all objects from collection
     */
-    listAllObjectsFromCollection(db: MongoClient, databaseName: string, collection: string): Promise<any[]>;
+    listAllObjectsFromCollection(mc: MongoClient, databaseName: string, collection: string): Promise<any[]>;
     /**
     * @author Hugo Alves Dutra
     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -50,10 +50,10 @@ export declare class MongoServer {
     * @param db MongoClient
     * @param databaseName Data base name
     * @param collection Collection target
-    * @param queryObject Query object. Fiels and values {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+    * @param queryObject Query object. Fiels and values {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
     * @return Array from objects from collection
     */
-    findObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any[]>;
+    findObjects(mc: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any[]>;
     /**
      * @author Hugo Alves Dutra
      * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -62,7 +62,18 @@ export declare class MongoServer {
      * @param databaseName Name from database
      * @return Promise with arry array with collections(Name and size)
      */
-    listCollections(db: MongoClient, databaseName: string): Promise<any[]>;
+    listCollections(mc: MongoClient, databaseName: string): Promise<any[]>;
+    /**
+      * @author Hugo Alves Dutra
+      * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+      * Replace single documento
+      * @param db MongoClient
+      * @param databaseName Target database
+      * @param collection Target colleciton
+      * @param query Query criteria {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
+      * @param fieldValues Value to updated
+      */
+    replaceOne(mc: MongoClient, databaseName: string, collection: string, query: Object, fieldsAndValues: Object): Promise<ReplaceWriteOpResult>;
     /**
      * @author Hugo Alves Dutra
      * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -70,10 +81,21 @@ export declare class MongoServer {
      * @param db MongoClient
      * @param databaseName Target database
      * @param collection Target colleciton
-     * @param query Query criteria {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+     * @param query Query criteria {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
      * @param fieldValues Value to updated
      */
-    updateObjects(db: MongoClient, databaseName: string, collection: string, query: Object, fieldsAndValues: Object): Promise<UpdateWriteOpResult>;
+    updateMany(mc: MongoClient, databaseName: string, collection: string, query: Object, fieldsAndValues: Object): Promise<UpdateWriteOpResult>;
+    /**
+     * @author Hugo Alves Dutra
+     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+     * Update single or multiples objects
+     * @param db MongoClient
+     * @param databaseName Target database
+     * @param collection Target colleciton
+     * @param query Query criteria {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
+     * @param fieldValues Value to updated
+     */
+    updateOne(mc: MongoClient, databaseName: string, collection: string, query: Object, fieldsAndValues: Object): Promise<UpdateWriteOpResult>;
     /**
     * @author Hugo Alves Dutra
     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -84,7 +106,7 @@ export declare class MongoServer {
     * @param document Object to write
     * @returns Promise from any
     */
-    writeObject(db: MongoClient, databaseName: string, collection: string, document: Object): Promise<any>;
+    writeObject(mc: MongoClient, databaseName: string, collection: string, document: Object): Promise<any>;
     /**
     * @author Hugo Alves Dutra
     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -95,7 +117,7 @@ export declare class MongoServer {
     * @param objects Array from Objects to write
     * @returns Promise from any
     */
-    writeObjects(db: MongoClient, databaseName: string, collection: string, objects: any[]): Promise<any>;
+    writeObjects(mc: MongoClient, databaseName: string, collection: string, objects: any[]): Promise<any>;
     /**
     * @author Hugo Alves Dutra
     * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
@@ -103,6 +125,6 @@ export declare class MongoServer {
     * @param databaseName Name from database
     * @param collectionName Name from collection to observer
     */
-    subscribeCollection(db: MongoClient, databaseName: string, collectionName: string): Observable<ChangeEvent<any>>;
+    subscribeCollection(mc: MongoClient, databaseName: string, collectionName: string): Observable<ChangeEvent<any>>;
 }
 //# sourceMappingURL=mongo.d.ts.map

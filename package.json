@@ -1,6 +1,6 @@
 {
   "name": "mongo-socket-server",
-  "version": "0.0.20",
+  "version": "0.0.70",
   "description": "",
   "main": "lib/index.js",
   "types": "lib",
@@ -10,7 +10,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/bluebird": "^3.5.30",
     "typescript": "^3.8.3"
   },
   "dependencies": {

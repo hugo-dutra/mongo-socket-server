@@ -1,7 +1,7 @@
 import { MongoServer } from './../mongo/mongo';
 import { ON, EMMITER, CONSTANT } from '../shared/constants';
 import * as SocketIO from 'socket.io';
-import { MongoClient, MongoError, ObjectId, ChangeEvent, UpdateWriteOpResult } from 'mongodb';
+import { MongoClient, MongoError, ObjectId, ChangeEvent, UpdateWriteOpResult, WriteOpResult, ReplaceWriteOpResult } from 'mongodb';
 import { Observable, Subscriber } from 'rxjs';
 import { reject } from 'bluebird';
 import { Utils } from '../shared/utils';
@@ -14,7 +14,7 @@ export class SocketServer {
     const socketServer = SocketIO.listen(socker_server_port).sockets;
     const mongoClient: MongoClient = new MongoClient(`${mongo_host}:${mongo_port}`, { useUnifiedTopology: true });
 
-    mongoClient.connect((err: MongoError, db: MongoClient) => {
+    mongoClient.connect((err: MongoError, mc: MongoClient) => {
       if (err) {
         throw err;
       }
@@ -24,7 +24,7 @@ export class SocketServer {
         console.log(`client ${socket.id} connected...`);
         /* DELETE OBJECT BY ID */
         const deleteObjectById = socket.on(ON.DELETE_ONE, (database: string, collection: string, ObjectId: string) => {
-          this.deleteObjectById(db, database, collection, ObjectId).then((object: any) => {
+          this.deleteObjectById(mc, database, collection, ObjectId).then((object: any) => {
             deleteObjectById.emit(EMMITER.STATUS_SUCCESS, object);
           }).catch((reason: any) => {
             deleteObjectById.emit(EMMITER.STATUS_FAIL, reason);
@@ -32,7 +32,7 @@ export class SocketServer {
         });
         /* DELETE ON OR MANY OBJECTS FROM TARGET COLLECTON */
         const deleteObjects = socket.on(ON.DELETE_MANY, (database: string, collection: string, queryObject: Object) => {
-          this.deleteObjects(db, database, collection, queryObject).then((object: any) => {
+          this.deleteObjects(mc, database, collection, queryObject).then((object: any) => {
             deleteObjects.emit(EMMITER.STATUS_SUCCESS, object);
           }).catch((reason: any) => {
             deleteObjects.emit(EMMITER.STATUS_FAIL, reason);
@@ -40,7 +40,7 @@ export class SocketServer {
         });
         /* FIND OBJECT BY ID */
         const findObjectById = socket.on(ON.FIND, (database: string, collection: string, id: string) => {
-          this.findObjectById(db, database, collection, id).then((object: any) => {
+          this.findObjectById(mc, database, collection, id).then((object: any) => {
             findObjectById.emit(EMMITER.STATUS_SUCCESS, object);
           }).catch((reason: any) => {
             findObjectById.emit(EMMITER.STATUS_FAIL, { status: ON.STATUS_FAIL, reason: reason })
@@ -48,7 +48,7 @@ export class SocketServer {
         });
         /* LIST OBJECTS FROM TARGET COLLECTION */
         const findObjects = socket.on(ON.LIST_OBJECTS, (database: string, collection: string, queryObject: Object) => {
-          this.findObjects(db, database, collection, queryObject).then((objects: any[]) => {
+          this.findObjects(mc, database, collection, queryObject).then((objects: any[]) => {
             findObjects.emit(EMMITER.STATUS_SUCCESS, objects);
           }).catch((reason: any) => {
             findObjects.emit(EMMITER.STATUS_FAIL, reason);
@@ -56,7 +56,7 @@ export class SocketServer {
         });
         /* LIST COLLECTIONS FROM DATABASE */
         const listCollectionsByDatabaseName = socket.on(ON.LIST_COLLECTION, (database: string) => {
-          this.listCollections(db, database).then((objects: any[]) => {
+          this.listCollections(mc, database).then((objects: any[]) => {
             listCollectionsByDatabaseName.emit(EMMITER.STATUS_SUCCESS, objects);
           }).catch((reason: any) => {
             listCollectionsByDatabaseName.emit(EMMITER.STATUS_FAIL, reason);
@@ -64,23 +64,39 @@ export class SocketServer {
         });
         /* LIST ALL OBJECTS FROM TARGET COLLECTION */
         const listAllObjectsFromCollection = socket.on(ON.LIST_ALL_OBJECTS, (database: string, collection: string) => {
-          this.listAllObjectsFromCollection(db, database, collection).then((objects: any[]) => {
+          this.listAllObjectsFromCollection(mc, database, collection).then((objects: any[]) => {
             listAllObjectsFromCollection.emit(EMMITER.STATUS_SUCCESS, objects);
           }).catch((reason: any) => {
             listAllObjectsFromCollection.emit(EMMITER.STATUS_FAIL, reason);
           })
         });
-        /* UPDATE ONE OR MANY OBJECTS */
-        const updateObjects = socket.on(ON.UPDATE, (database: string, collection: string, query: Object, fieldsAndValues: Object) => [
-          this.updateObjects(db, database, collection, query, fieldsAndValues).then((object: any) => {
-            updateObjects.emit(EMMITER.STATUS_SUCCESS, object);
+        /* REPLACE OBJECTS */
+        const replaceOne = socket.on(ON.REPLACE_ONE, (database: string, collection: string, query: Object, fieldsAndValues: Object) => [
+          this.replaceOne(mc, database, collection, query, fieldsAndValues).then((object: any) => {
+            replaceOne.emit(EMMITER.STATUS_SUCCESS, object);
           }).catch((reason: any) => {
-            updateObjects.emit(EMMITER.STATUS_FAIL, reason);
+            replaceOne.emit(EMMITER.STATUS_FAIL, reason);
+          })
+        ]);
+        /* UPDATE MANY OBJECTS */
+        const updateMany = socket.on(ON.UPDATE_MANY, (database: string, collection: string, query: Object, fieldsAndValues: Object) => [
+          this.updateMany(mc, database, collection, query, fieldsAndValues).then((object: any) => {
+            updateMany.emit(EMMITER.STATUS_SUCCESS, object);
+          }).catch((reason: any) => {
+            updateMany.emit(EMMITER.STATUS_FAIL, reason);
+          })
+        ]);
+        /* UPDATE ONE OBJECTS */
+        const updateOne = socket.on(ON.UPDATE_ONE, (database: string, collection: string, query: Object, fieldsAndValues: Object) => [
+          this.updateOne(mc, database, collection, query, fieldsAndValues).then((object: any) => {
+            updateOne.emit(EMMITER.STATUS_SUCCESS, object);
+          }).catch((reason: any) => {
+            updateOne.emit(EMMITER.STATUS_FAIL, reason);
           })
         ]);
         /* WRITE ONE */
         const writeObject = socket.on(ON.INSERT_ONE, (database: string, collection: string, document: Object) => {
-          this.writeObject(db, database, collection, document).then((object: any) => {
+          this.writeObject(mc, database, collection, document).then((object: any) => {
             writeObject.emit(EMMITER.STATUS_SUCCESS, object);
           }).catch((reason: any) => {
             writeObject.emit(EMMITER.STATUS_FAIL, { status: EMMITER.STATUS_FAIL, reason: reason });
@@ -89,7 +105,7 @@ export class SocketServer {
         /* WRITE MANY */
         const writeObjects = socket.on(ON.INSERT_MANY, (database: string, collection: string, documents: any[]) => {
           if (this.validateInsertMany(documents.length)) {
-            this.writeObjects(db, database, collection, documents).then((objects: any) => {
+            this.writeObjects(mc, database, collection, documents).then((objects: any) => {
               writeObjects.emit(EMMITER.STATUS_SUCCESS, objects);
             }).catch((reason: any) => {
               writeObjects.emit(EMMITER.STATUS_FAIL, { status: EMMITER.STATUS_FAIL, reason: reason });
@@ -100,7 +116,7 @@ export class SocketServer {
         });
         /* WATCH COLLECTION */
         const subscribeCollection = socket.on(ON.SUBSCRIBE_COLLECTION, (database: string, collection: string) => {
-          this.subscribeCollection(db, database, collection).subscribe((object: ChangeEvent<any>) => {
+          this.subscribeCollection(mc, database, collection).subscribe((object: ChangeEvent<any>) => {
             subscribeCollection.emit(EMMITER.COLLECTION_CHANGED, object);
           });
         });
@@ -115,15 +131,15 @@ export class SocketServer {
    * @param db MongoClient
    * @param databaseName Target database
    * @param collection Target collection
-   * @param queryObject Query select objects to delete {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+   * @param queryObject Query select objects to delete {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
    * @result Objects deleted infomation
    */
-  private deleteObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any> {
+  private deleteObjects(mc: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.utils.validateRequestDatabaseCollectionObjectQuery(databaseName, collection, queryObject)) {
         reject({ reason: 'database, collection or queryObject null or undefined' });
       }
-      this.mongoServer.deleteObjects(db, databaseName, collection, queryObject).then((result) => {
+      this.mongoServer.deleteObjects(mc, databaseName, collection, queryObject).then((result) => {
         resolve(result);
       }).catch((reason: any) => {
         reject(reason);
@@ -141,12 +157,12 @@ export class SocketServer {
    * @param id Target object do delete
    * @result object deleted informations
    */
-  private deleteObjectById(db: MongoClient, databaseName: string, collection: string, ObjectId: string): Promise<any> {
+  private deleteObjectById(mc: MongoClient, databaseName: string, collection: string, ObjectId: string): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
         reject({ reason: 'database or collection null or undefined' });
       }
-      this.mongoServer.deleteObjectById(db, databaseName, collection, ObjectId).then((result) => {
+      this.mongoServer.deleteObjectById(mc, databaseName, collection, ObjectId).then((result) => {
         resolve(result);
       }).catch((reason: any) => {
         reject(reason);
@@ -163,12 +179,12 @@ export class SocketServer {
    * @param collection Collection name
    * @param id Document id (_id)
    */
-  private findObjectById(db: MongoClient, databaseName: string, collection: string, id: string): Promise<any> {
+  private findObjectById(mc: MongoClient, databaseName: string, collection: string, id: string): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
         reject({ reason: 'database or collection null or undefined' });
       }
-      this.mongoServer.findObjectById(db, databaseName, collection, id).then((result) => {
+      this.mongoServer.findObjectById(mc, databaseName, collection, id).then((result) => {
         resolve(result);
       }).catch((reason: any) => {
         reject(reason);
@@ -184,12 +200,12 @@ export class SocketServer {
    * @param databaseName Name from database
    * @return Promise with arry array with collections(Name and size)
    */
-  private listCollections(db: MongoClient, databaseName: string): Promise<any[]> {
+  private listCollections(mc: MongoClient, databaseName: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
       if (!this.utils.validateRequestDatabase(databaseName)) {
         reject({ reason: 'database or undefined' });
       }
-      this.mongoServer.listCollections(db, databaseName).then((collections: any[]) => {
+      this.mongoServer.listCollections(mc, databaseName).then((collections: any[]) => {
         resolve(collections);
       }).catch((reason: any) => {
         reject(reason);
@@ -205,12 +221,12 @@ export class SocketServer {
    * @param databaseName databasename
    * @param collection collection to get objects
    */
-  private listAllObjectsFromCollection(db: MongoClient, databaseName: string, collection: string): Promise<any[]> {
+  private listAllObjectsFromCollection(mc: MongoClient, databaseName: string, collection: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
       if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
         reject({ reason: 'database or collection null or undefined' });
       }
-      this.mongoServer.listAllObjectsFromCollection(db, databaseName, collection).then((values: any[]) => {
+      this.mongoServer.listAllObjectsFromCollection(mc, databaseName, collection).then((values: any[]) => {
         resolve(values);
       }).catch((reason: any) => {
         reject(reason);
@@ -225,16 +241,39 @@ export class SocketServer {
   * @param db MongoClient
   * @param databaseName Data base name
   * @param collection Collection target
-  * @param queryObject Query object. Fiels and values {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+  * @param queryObject Query object. Fiels and values {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
   * @return Array from objects from collection
   */
-  private findObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any[]> {
+  private findObjects(mc: MongoClient, databaseName: string, collection: string, queryObject: Object): Promise<any[]> {
     return new Promise((resolve, reject) => {
       if (!this.utils.validateRequestDatabaseCollectionObjectQuery(databaseName, collection, queryObject)) {
         reject({ reason: 'database, collection or queryObject null or undefined' });
       }
-      this.mongoServer.findObjects(db, databaseName, collection, queryObject).then((values: any[]) => {
+      this.mongoServer.findObjects(mc, databaseName, collection, queryObject).then((values: any[]) => {
         resolve(values);
+      }).catch((reason: any) => {
+        reject(reason);
+      });
+    });
+  }
+
+  /**
+  * @author Hugo Alves Dutra
+  * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+  * Replace single
+  * @param db MongoClient
+  * @param databaseName Target database
+  * @param collection Target colleciton
+  * @param query Query criteria {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
+  * @param fieldValues Value to updated
+  */
+  public replaceOne(mc: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollectionObjectQuery(databaseName, collection, queryObject)) {
+        reject({ reason: 'database, collection or queryObject null or undefined' });
+      }
+      this.mongoServer.replaceOne(mc, databaseName, collection, queryObject, fieldsAndValues).then((documents: ReplaceWriteOpResult) => {
+        resolve(documents);
       }).catch((reason: any) => {
         reject(reason);
       });
@@ -248,15 +287,38 @@ export class SocketServer {
   * @param db MongoClient
   * @param databaseName Target database
   * @param collection Target colleciton
-  * @param query Query criteria {@link https://docs.mongodb.com/manual/tutorial/query-documents/}
+  * @param query Query criteria {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
   * @param fieldValues Value to updated
   */
-  public updateObjects(db: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any> {
+  public updateMany(mc: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.utils.validateRequestDatabaseCollectionObjectQuery(databaseName, collection, queryObject)) {
         reject({ reason: 'database, collection or queryObject null or undefined' });
       }
-      this.mongoServer.updateObjects(db, databaseName, collection, queryObject, fieldsAndValues).then((documents: UpdateWriteOpResult) => {
+      this.mongoServer.updateMany(mc, databaseName, collection, queryObject, fieldsAndValues).then((documents: UpdateWriteOpResult) => {
+        resolve(documents);
+      }).catch((reason: any) => {
+        reject(reason);
+      });
+    });
+  }
+
+  /**
+  * @author Hugo Alves Dutra
+  * Feel free to colaborate github: {@link https://github.com/hugo-dutra/mongo-socket-server}
+  * Update single object
+  * @param db MongoClient
+  * @param databaseName Target database
+  * @param collection Target colleciton
+  * @param query Query criteria {@link https://docs.mongomc.com/manual/tutorial/query-documents/}
+  * @param fieldValues Value to updated
+  */
+  public updateOne(mc: MongoClient, databaseName: string, collection: string, queryObject: Object, fieldsAndValues: Object): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.utils.validateRequestDatabaseCollectionObjectQuery(databaseName, collection, queryObject)) {
+        reject({ reason: 'database, collection or queryObject null or undefined' });
+      }
+      this.mongoServer.updateOne(mc, databaseName, collection, queryObject, fieldsAndValues).then((documents: UpdateWriteOpResult) => {
         resolve(documents);
       }).catch((reason: any) => {
         reject(reason);
@@ -274,12 +336,12 @@ export class SocketServer {
   * @param document Object to write
   * @returns Promise from any
   */
-  private writeObject(db: MongoClient, databaseName: string, collection: string, document: Object): Promise<any> {
+  private writeObject(mc: MongoClient, databaseName: string, collection: string, document: Object): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
         reject({ reason: 'database, collection null or undefined' });
       }
-      this.mongoServer.writeObject(db, databaseName, collection, document).then((value: any) => {
+      this.mongoServer.writeObject(mc, databaseName, collection, document).then((value: any) => {
         resolve(value);
       }).catch((reason: any) => {
         reject(reason);
@@ -297,12 +359,12 @@ export class SocketServer {
   * @param objects Array from Objects to write
   * @returns Promise from any
   */
-  private writeObjects(db: MongoClient, databaseName: string, collection: string, objects: any[]): Promise<any> {
+  private writeObjects(mc: MongoClient, databaseName: string, collection: string, objects: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.utils.validateRequestDatabaseCollection(databaseName, collection)) {
         reject({ reason: 'database, collection null or undefined' });
       }
-      this.mongoServer.writeObjects(db, databaseName, collection, objects).then((value: any) => {
+      this.mongoServer.writeObjects(mc, databaseName, collection, objects).then((value: any) => {
         resolve(value);
       }).catch((reason: any) => {
         reject(reason);
@@ -335,17 +397,16 @@ export class SocketServer {
   * @param collectionName Name from collection to observer
   * @result Object changed
   */
-  public subscribeCollection(db: MongoClient, databaseName: string, collectionName: string): Observable<any> {
+  public subscribeCollection(mc: MongoClient, databaseName: string, collectionName: string): Observable<any> {
     return new Observable((subscriber: Subscriber<any>) => {
       if (!this.utils.validateRequestDatabaseCollection(databaseName, collectionName)) {
         subscriber.next({ reason: 'database or collection null or empty' });
         subscriber.unsubscribe();
       } else {
-        this.mongoServer.subscribeCollection(db, databaseName, collectionName).subscribe((doc: any) => {
+        this.mongoServer.subscribeCollection(mc, databaseName, collectionName).subscribe((doc: any) => {
           subscriber.next(doc);
         });
       }
     });
   }
-
 }
